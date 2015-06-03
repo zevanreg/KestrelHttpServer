@@ -4,6 +4,7 @@
 using System;
 using Microsoft.AspNet.Server.Kestrel.Networking;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Microsoft.AspNet.Server.Kestrel.Http
 {
@@ -25,10 +26,12 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private readonly UvStreamHandle _socket;
         private Frame _frame;
         long _connectionId;
+        static long _nextConnectionId;
 
         public Connection(ListenerContext context, UvStreamHandle socket) : base(context)
         {
             _socket = socket;
+            _connectionId = Interlocked.Increment(ref _nextConnectionId);
             ConnectionControl = this;
         }
 
