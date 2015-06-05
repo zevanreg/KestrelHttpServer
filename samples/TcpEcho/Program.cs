@@ -2,8 +2,12 @@
 using Microsoft.Framework.Runtime;
 using System;
 using System.IO;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Diagnostics;
+using System.Threading;
+using System.Collections.Generic;
 
 namespace TcpEcho
 {
@@ -22,6 +26,8 @@ namespace TcpEcho
         private readonly Action<UvStreamHandle, int, Exception, object> _onHttpRead;
         private readonly Action<UvWriteReqNative, int, Exception, object> _onHttpWrite;
 
+        private readonly List<Worker> _workers = new List<Worker>();
+
         static readonly string responseStr = "HTTP/1.1 200 OK\r\n" +
             "Content-Type: text/plain;charset=UTF-8\r\n" +
             "Content-Length: 10\r\n" +
@@ -34,6 +40,45 @@ namespace TcpEcho
         private static byte[] _responseBytes = Encoding.UTF8.GetBytes(responseStr);
         private static IntPtr _responseBuffer;
 
+        private const string WS2_32 = "ws2_32.dll";
+
+        [Flags]
+        internal enum SocketConstructorFlags
+        {
+            WSA_FLAG_OVERLAPPED = 0x01,
+            WSA_FLAG_MULTIPOINT_C_ROOT = 0x02,
+            WSA_FLAG_MULTIPOINT_C_LEAF = 0x04,
+            WSA_FLAG_MULTIPOINT_D_ROOT = 0x08,
+            WSA_FLAG_MULTIPOINT_D_LEAF = 0x10,
+        }
+
+        // CharSet=Auto here since WSASocket has A and W versions. We can use Auto cause the method is not used under constrained execution region
+        [DllImport(WS2_32, CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern IntPtr WSASocket(
+            [In] AddressFamily addressFamily,
+            [In] SocketType socketType,
+            [In] ProtocolType protocolType,
+            [In] IntPtr protocolInfo, // will be WSAProtcolInfo protocolInfo once we include QOS APIs
+            [In] uint group,
+            [In] SocketConstructorFlags flags
+        );
+
+        [DllImport(WS2_32, CharSet = CharSet.Auto, SetLastError = true)]
+        internal unsafe static extern IntPtr WSASocket(
+            [In] AddressFamily addressFamily,
+            [In] SocketType socketType,
+            [In] ProtocolType protocolType,
+            [In] byte* pinnedBuffer, // will be WSAProtcolInfo protocolInfo once we include QOS APIs
+            [In] uint group,
+            [In] SocketConstructorFlags flags
+        );
+
+        [DllImport(WS2_32, SetLastError = true)]
+        internal unsafe static extern int WSADuplicateSocket(
+            [In] IntPtr socketHandle,
+            [In] uint targetProcessID,
+            [In] byte* pinnedBuffer
+        );
 
         public Program(ILibraryManager libraryManager)
         {
@@ -53,22 +98,39 @@ namespace TcpEcho
             Marshal.Copy(_responseBytes, 0, _responseBuffer, _responseBytes.Length);
         }
 
-        public void Main(string[] args)
+        public unsafe void Main(string[] args)
         {
             loop.Init(uv);
 
             var work = new UvAsyncHandle();
             work.Init(loop, () =>
             {
-                var tcpListen = new UvTcpHandle();
-                tcpListen.Init(loop);
-                tcpListen.Bind(new System.Net.IPEndPoint(0, 5000));
-                tcpListen.Listen(10, _onTcpListen, null);
+                //var tcpListen = new UvTcpHandle();
+                //tcpListen.Init(loop);
+                //tcpListen.Bind(new System.Net.IPEndPoint(0, 5001));
+                //tcpListen.Listen(10, _onTcpListen, null);
 
-                var httpListen = new UvTcpHandle();
-                httpListen.Init(loop);
-                httpListen.Bind(new System.Net.IPEndPoint(0, 5001));
-                httpListen.Listen(10, _onHttpListen, null);
+                var httpListen1 = new UvTcpHandle();
+                httpListen1.Init(loop);
+                //httpListen1.Open(socketHandle1);
+                httpListen1.Bind(new System.Net.IPEndPoint(0, 5004));
+                httpListen1.Listen(10, _onHttpListen, "Listen1");
+
+                var httpListenCluster = new UvTcpHandle();
+                httpListenCluster.Init(loop);
+                httpListenCluster.Bind(new System.Net.IPEndPoint(0, 5005));
+
+                var pipe = new UvPipeHandle();
+                pipe.Init(loop, false);
+                pipe.Bind("\\\\?\\pipe\\uv-test");
+                pipe.Listen(128, OnPipeListen, httpListenCluster);
+
+                for (var index = 0; index != Environment.ProcessorCount; ++index)
+                {
+                    var worker = new Worker(uv);
+                    worker.Start();
+                    _workers.Add(worker);
+                }
             });
 
             work.Send();
@@ -76,6 +138,32 @@ namespace TcpEcho
             loop.Run();
             work.Dispose();
             loop.Dispose();
+        }
+
+        public void OnPipeListen(
+            UvStreamHandle pipe,
+            int status,
+            Exception error,
+            object state)
+        {
+            var httpListenCluster = (UvTcpHandle)state;
+            var workerPipe = new UvPipeHandle();
+            workerPipe.Init(loop, true);
+            pipe.Accept(workerPipe);
+            var writeRequest = new UvWriteReqNative();
+            writeRequest.Init(loop);
+            writeRequest.Write2(workerPipe, _responseBuffer, 1, httpListenCluster, OnPipeWrite, workerPipe);
+        }
+
+        public void OnPipeWrite(
+            UvWriteReqNative request,
+            int status,
+            Exception error,
+            object state)
+        {
+            var workerPipe = (UvPipeHandle)state;
+            request.Dispose();
+            workerPipe.Dispose();
         }
 
         public void OnListen(
@@ -160,11 +248,14 @@ namespace TcpEcho
 
 
         private void OnHttpListen(
-            UvStreamHandle httpListen, 
-            int status, 
-            Exception error, 
+            UvStreamHandle httpListen,
+            int status,
+            Exception error,
             object state)
         {
+            var message = (string)state;
+            Console.WriteLine(message);
+
             var httpStream = new UvTcpHandle();
             httpStream.Init(loop);
             httpListen.Accept(httpStream);
@@ -181,8 +272,8 @@ namespace TcpEcho
         }
 
         private Libuv.uv_buf_t OnHttpAlloc(
-            UvStreamHandle httpStream, 
-            int suggestedSize, 
+            UvStreamHandle httpStream,
+            int suggestedSize,
             object state)
         {
             var httpState = (HttpState)state;
@@ -190,9 +281,9 @@ namespace TcpEcho
         }
 
         private void OnHttpRead(
-            UvStreamHandle httpStream, 
-            int status, 
-            Exception error, 
+            UvStreamHandle httpStream,
+            int status,
+            Exception error,
             object state)
         {
             var httpState = (HttpState)state;
@@ -217,9 +308,9 @@ namespace TcpEcho
         }
 
         private void OnHttpWrite(
-            UvWriteReqNative httpWrite, 
-            int status, 
-            Exception error, 
+            UvWriteReqNative httpWrite,
+            int status,
+            Exception error,
             object state)
         {
             //var httpStream = (UvTcpHandle)state;

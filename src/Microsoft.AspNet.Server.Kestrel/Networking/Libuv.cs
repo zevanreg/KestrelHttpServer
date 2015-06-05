@@ -58,6 +58,8 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
 
         public int Check(int statusCode)
         {
+            var x = Marshal.GetLastWin32Error();
+
             Exception error;
             var result = Check(statusCode, out error);
             if (error != null)
@@ -192,6 +194,34 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        delegate int uv_tcp_open(UvTcpHandle handle, IntPtr hSocket);
+        uv_tcp_open _uv_tcp_open = default(uv_tcp_open);
+        public void tcp_open(UvTcpHandle handle, IntPtr hSocket)
+        {
+            handle.Validate();
+            Check(_uv_tcp_open(handle, hSocket));
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        delegate int uv_pipe_init(UvLoopHandle loop, UvPipeHandle handle, int ipc);
+        uv_pipe_init _uv_pipe_init = default(uv_pipe_init);
+        public void pipe_init(UvLoopHandle loop, UvPipeHandle handle, bool ipc)
+        {
+            loop.Validate();
+            handle.Validate();
+            Check(_uv_pipe_init(loop, handle, ipc ? -1 : 0));
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        delegate int uv_pipe_bind(UvPipeHandle loop, string name);
+        uv_pipe_bind _uv_pipe_bind = default(uv_pipe_bind);
+        public void pipe_bind(UvPipeHandle handle, string name)
+        {
+            handle.Validate();
+            Check(_uv_pipe_bind(handle, name));
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void uv_connection_cb(IntPtr server, int status);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         delegate int uv_listen(UvStreamHandle handle, int backlog, uv_connection_cb cb);
@@ -210,6 +240,18 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
             server.Validate();
             client.Validate();
             Check(_uv_accept(server, client));
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void uv_connect_cb(IntPtr req, int status);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        unsafe delegate int uv_pipe_connect(UvConnectRequest req, UvPipeHandle handle, string name, uv_connect_cb cb);
+        uv_pipe_connect _uv_pipe_connect = default(uv_pipe_connect);
+        unsafe public void pipe_connect(UvConnectRequest req, UvPipeHandle handle, string name, uv_connect_cb cb)
+        {
+            req.Validate();
+            handle.Validate();
+            Check(_uv_pipe_connect(req, handle, name, cb));
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -246,13 +288,23 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void uv_write_cb(IntPtr req, int status);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        unsafe delegate int uv_write(UvReq req, UvStreamHandle handle, Libuv.uv_buf_t* bufs, int nbufs, uv_write_cb cb);
+        unsafe delegate int uv_write(UvRequest req, UvStreamHandle handle, Libuv.uv_buf_t* bufs, int nbufs, uv_write_cb cb);
         uv_write _uv_write = default(uv_write);
-        unsafe public void write(UvReq req, UvStreamHandle handle, Libuv.uv_buf_t* bufs, int nbufs, uv_write_cb cb)
+        unsafe public void write(UvRequest req, UvStreamHandle handle, Libuv.uv_buf_t* bufs, int nbufs, uv_write_cb cb)
         {
             req.Validate();
             handle.Validate();
             Check(_uv_write(req, handle, bufs, nbufs, cb));
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        unsafe delegate int uv_write2(UvRequest req, UvStreamHandle handle, Libuv.uv_buf_t* bufs, int nbufs, UvStreamHandle sendHandle, uv_write_cb cb);
+        uv_write2 _uv_write2 = default(uv_write2);
+        unsafe public void write2(UvRequest req, UvStreamHandle handle, Libuv.uv_buf_t* bufs, int nbufs, UvStreamHandle sendHandle, uv_write_cb cb)
+        {
+            req.Validate();
+            handle.Validate();
+            Check(_uv_write2(req, handle, bufs, nbufs, sendHandle, cb));
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

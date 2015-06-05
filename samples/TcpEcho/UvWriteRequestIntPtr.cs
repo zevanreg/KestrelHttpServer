@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace TcpEcho
 {
-    public class UvWriteReqNative : UvReq
+    public class UvWriteReqNative : UvRequest
     {
         private readonly static Libuv.uv_write_cb _uv_write_cb = UvWriteCb;
 
@@ -16,8 +16,6 @@ namespace TcpEcho
 
         Action<UvWriteReqNative, int, Exception, object> _callback;
         object _state;
-
-        GCHandle _pin;
 
         public void Init(UvLoopHandle loop)
         {
@@ -40,7 +38,7 @@ namespace TcpEcho
             try
             {
                 // add GCHandle to keeps this SafeHandle alive while request processing
-                _pin = GCHandle.Alloc(this, GCHandleType.Normal);
+                Pin();
 
                 var pBuffers = (Libuv.uv_buf_t*)_bufs;
                 pBuffers[0] = Libuv.buf_init(
@@ -55,7 +53,38 @@ namespace TcpEcho
             {
                 _callback = null;
                 _state = null;
-                _pin.Free();
+                Unpin();
+                throw;
+            }
+        }
+
+        public unsafe void Write2(
+            UvStreamHandle handle,
+            IntPtr memory,
+            int length,
+            UvStreamHandle sendHandle,
+            Action<UvWriteReqNative, int, Exception, object> callback,
+            object state)
+        {
+            try
+            {
+                // add GCHandle to keeps this SafeHandle alive while request processing
+                Pin();
+
+                var pBuffers = (Libuv.uv_buf_t*)_bufs;
+                pBuffers[0] = Libuv.buf_init(
+                    memory,
+                    length);
+
+                _callback = callback;
+                _state = state;
+                _uv.write2(this, handle, pBuffers, 1, sendHandle, _uv_write_cb);
+            }
+            catch
+            {
+                _callback = null;
+                _state = null;
+                Unpin();
                 throw;
             }
         }
@@ -63,7 +92,7 @@ namespace TcpEcho
         private static void UvWriteCb(IntPtr ptr, int status)
         {
             var req = FromIntPtr<UvWriteReqNative>(ptr);
-            req._pin.Free();
+            req.Unpin();
 
             var callback = req._callback;
             req._callback = null;
