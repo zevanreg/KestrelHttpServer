@@ -165,7 +165,7 @@ namespace TcpEcho
             return uv.buf_init(httpState.Buffer, 8192);
         }
 
-        private void OnHttpRead(
+        private unsafe void OnHttpRead(
             UvStreamHandle httpStream,
             int status,
             Exception error,
@@ -179,16 +179,42 @@ namespace TcpEcho
 
             if (normalRead)
             {
-                httpState.HttpWrite.Write(
-                    httpStream,
-                    _responseBuffer,
-                    _responseBytes.Length,
-                    _onHttpWrite,
-                    httpState);
+                int parserState = httpState.ParserState;
+                byte* pbRead = (byte*)httpState.Buffer;
+                for(var cbRead = status; cbRead != 0; --cbRead, ++pbRead)
+                {
+                    switch (parserState | *pbRead)
+                    {
+                        case '\r':
+                        case 0x100 + '\r':
+                        case 0x300 + '\r':
+                            parserState = 0x100;
+                            break;
+                        case 0x100 + '\n':
+                            parserState = 0x200;
+                            break;
+                        case 0x200 + '\r':
+                            parserState = 0x300;
+                            break;
+                        case 0x300 + '\n':
+                            httpState.HttpWrite.Write(
+                                httpStream,
+                                _responseBuffer,
+                                _responseBytes.Length,
+                                _onHttpWrite,
+                                httpState);
+                            parserState = 0x000;
+                            break;
+                        default:
+                            parserState = 0x000;
+                            break;
+                    }
+                }
+                httpState.ParserState = parserState;
             }
             else
             {
-                // TODO: disconnect
+                httpStream.Dispose();
             }
         }
 
@@ -216,6 +242,7 @@ namespace TcpEcho
         {
             public IntPtr Buffer;
             public UvWriteReqNative HttpWrite;
+            public int ParserState;
         }
 
 
