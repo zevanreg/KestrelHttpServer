@@ -14,6 +14,7 @@ namespace TcpEcho
         Libuv uv;
         Thread thread;
         UvLoopHandle loop;
+        int port;
 
         private readonly Action<UvStreamHandle, int, Exception, object> _onHttpListen;
         private readonly Func<UvStreamHandle, int, object, Libuv.uv_buf_t> _onHttpAlloc;
@@ -32,9 +33,10 @@ namespace TcpEcho
         private static byte[] _responseBytes = Encoding.UTF8.GetBytes(responseStr);
         private static IntPtr _responseBuffer;
 
-        public Worker(Libuv uv)
+        public Worker(Libuv uv, int port)
         {
             this.uv = uv;
+            this.port = port;
 
             _onHttpListen = OnHttpListen;
             _onHttpAlloc = OnHttpAlloc;
@@ -44,8 +46,12 @@ namespace TcpEcho
             _responseBuffer = Marshal.AllocCoTaskMem(_responseBytes.Length);
             Marshal.Copy(_responseBytes, 0, _responseBuffer, _responseBytes.Length);
 
+            Console.WriteLine($"Bytes per response {_responseBytes.Length}");
+
             thread = new Thread(OnThreadStart);
         }
+
+        public int Connections;
 
         public void Start()
         {
@@ -54,17 +60,24 @@ namespace TcpEcho
 
         private void OnThreadStart()
         {
-            loop = new UvLoopHandle();
-            loop.Init(uv);
+            try
+            {
+                loop = new UvLoopHandle();
+                loop.Init(uv);
 
-            var pipe = new UvPipeHandle();
-            pipe.Init(loop, true);
+                var pipe = new UvPipeHandle();
+                pipe.Init(loop, true);
 
-            var connect = new UvConnectRequest();
-            connect.Init(loop);
-            connect.Connect(pipe, "\\\\?\\pipe\\uv-test", OnPipeConnect, pipe);
+                var connect = new UvConnectRequest();
+                connect.Init(loop);
+                connect.Connect(pipe, "\\\\?\\pipe\\uv-test", OnPipeConnect, pipe);
 
-            loop.Run();
+                loop.Run();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Worker.OnThreadStart " + ex.Message);
+            }
         }
 
         private void OnPipeConnect(
@@ -74,11 +87,22 @@ namespace TcpEcho
             object state)
         {
             var pipe = (UvPipeHandle)state;
-            pipe.ReadStart(OnPipeAlloc, OnPipeRead, null);
+            Console.WriteLine($"Worker.OnPipeConnect {status} {error?.Message}");
+
+            if (status == 0)
+            {
+                pipe.ReadStart(OnPipeAlloc, OnPipeRead, null);
+            }
+            else
+            {
+                connect.Connect(pipe, "\\\\?\\pipe\\uv-test" + Program.mode, OnPipeConnect, pipe);
+            }
         }
 
         private Libuv.uv_buf_t OnPipeAlloc(UvStreamHandle arg1, int arg2, object arg3)
         {
+            Console.WriteLine("Worker.OnPipeAlloc");
+
             return arg1.Libuv.buf_init(Marshal.AllocCoTaskMem(1024), 1024); //TODO: free this memory
         }
 
@@ -88,10 +112,21 @@ namespace TcpEcho
             Exception error,
             object state)
         {
+            Console.WriteLine("Worker.OnPipeRead");
+
             var httpListen = new UvTcpHandle();
             httpListen.Init(loop);
             pipe.Accept(httpListen);
             httpListen.Listen(128, _onHttpListen, "Connect");
+
+            var httpListen1 = new UvTcpHandle();
+            httpListen1.Init(loop);
+            httpListen1.Bind(new System.Net.IPEndPoint(0, port));
+            httpListen1.Listen(10, _onHttpListen, "Listen1");
+
+
+            Console.WriteLine($"Worker on thread {Thread.CurrentThread.ManagedThreadId} started for port {port}...");
+
             pipe.Dispose();
         }
 
@@ -102,11 +137,13 @@ namespace TcpEcho
             object state)
         {
             var message = (string)state;
-            Console.WriteLine(message);
+            //Console.WriteLine(message);
 
             var httpStream = new UvTcpHandle();
             httpStream.Init(loop);
             httpListen.Accept(httpStream);
+
+            Interlocked.Increment(ref Connections);
 
             var httpState = new HttpState();
             httpState.Buffer = Marshal.AllocCoTaskMem(8192);

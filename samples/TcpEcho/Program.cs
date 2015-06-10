@@ -8,6 +8,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TcpEcho
 {
@@ -98,9 +99,16 @@ namespace TcpEcho
             Marshal.Copy(_responseBytes, 0, _responseBuffer, _responseBytes.Length);
         }
 
+        Thread logging;
+        public static int mode;
+
         public unsafe void Main(string[] args)
         {
             loop.Init(uv);
+
+            mode = (args.Length == 1) ? int.Parse(args[0]) : 0;
+
+            Console.WriteLine($"starting mode {mode}");
 
             var work = new UvAsyncHandle();
             work.Init(loop, () =>
@@ -110,30 +118,48 @@ namespace TcpEcho
                 //tcpListen.Bind(new System.Net.IPEndPoint(0, 5001));
                 //tcpListen.Listen(10, _onTcpListen, null);
 
-                var httpListen1 = new UvTcpHandle();
-                httpListen1.Init(loop);
-                //httpListen1.Open(socketHandle1);
-                httpListen1.Bind(new System.Net.IPEndPoint(0, 5004));
-                httpListen1.Listen(10, _onHttpListen, "Listen1");
+                //var httpListen1 = new UvTcpHandle();
+                //httpListen1.Init(loop);
+                ////httpListen1.Open(socketHandle1);
+                //httpListen1.Bind(new System.Net.IPEndPoint(0, 5004));
+                //httpListen1.Listen(10, _onHttpListen, "Listen1");
 
                 var httpListenCluster = new UvTcpHandle();
                 httpListenCluster.Init(loop);
-                httpListenCluster.Bind(new System.Net.IPEndPoint(0, 5005));
+                httpListenCluster.Bind(new System.Net.IPEndPoint(0, 5005 + mode));
 
                 var pipe = new UvPipeHandle();
                 pipe.Init(loop, false);
-                pipe.Bind("\\\\?\\pipe\\uv-test");
+                pipe.Bind("\\\\?\\pipe\\uv-test" + mode);
                 pipe.Listen(128, OnPipeListen, httpListenCluster);
+
+                Console.WriteLine($"Starting {Environment.ProcessorCount} workers");
 
                 for (var index = 0; index != Environment.ProcessorCount; ++index)
                 {
-                    var worker = new Worker(uv);
-                    worker.Start();
-                    _workers.Add(worker);
+                    if (mode == 0 || (mode == 1 && (index % 2 == 0)) || (mode == 2 && (index % 2 == 1)))
+                    {
+                        var worker = new Worker(uv, 5010 + index);
+                        worker.Start();
+                        _workers.Add(worker);
+                    }
                 }
+
+                (logging = new Thread(() =>
+                {
+                    for (; ;)
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(4));
+                        Console.WriteLine(_workers.Aggregate("", (a, b) => $"{a} {b.Connections}"));
+                    }
+                })).Start();
+
+                Console.WriteLine($"Started {_workers.Count} workers");
             });
 
             work.Send();
+
+            Console.WriteLine("Server started...");
 
             loop.Run();
             work.Dispose();
@@ -146,13 +172,23 @@ namespace TcpEcho
             Exception error,
             object state)
         {
+            Console.WriteLine("Main.OnPipeListen");
+
             var httpListenCluster = (UvTcpHandle)state;
-            var workerPipe = new UvPipeHandle();
-            workerPipe.Init(loop, true);
-            pipe.Accept(workerPipe);
-            var writeRequest = new UvWriteReqNative();
-            writeRequest.Init(loop);
-            writeRequest.Write2(workerPipe, _responseBuffer, 1, httpListenCluster, OnPipeWrite, workerPipe);
+
+            try
+            {
+                var workerPipe = new UvPipeHandle();
+                workerPipe.Init(loop, true);
+                pipe.Accept(workerPipe);
+                var writeRequest = new UvWriteReqNative();
+                writeRequest.Init(loop);
+                writeRequest.Write2(workerPipe, _responseBuffer, 1, httpListenCluster, OnPipeWrite, workerPipe);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         public void OnPipeWrite(
@@ -254,7 +290,7 @@ namespace TcpEcho
             object state)
         {
             var message = (string)state;
-            Console.WriteLine(message);
+            //Console.WriteLine(message);
 
             var httpStream = new UvTcpHandle();
             httpStream.Init(loop);
