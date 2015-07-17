@@ -497,7 +497,6 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                         ch2 != ' ' &&
                             ch2 != '\t')
                 {
-                    var name = _ascii.GetString(remaining.Array, remaining.Offset, colonIndex);
                     var value = "";
                     if (valueEndIndex != -1)
                     {
@@ -508,7 +507,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                     {
                         value = value.Replace("\r\n", " ");
                     }
-                    AddRequestHeader(name, value);
+                    AddRequestHeader(remaining.Array, remaining.Offset, colonIndex, value);
                     baton.Skip(index + 2);
                     return true;
                 }
@@ -543,9 +542,9 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             return false;
         }
 
-        private void AddRequestHeader(string name, string value)
+        private void AddRequestHeader(byte[] keyBytes, int keyOffset, int keyLength, string value)
         {
-            _requestHeaders.Append(name, value);
+            _requestHeaders.Append(keyBytes, keyOffset, keyLength, value);
         }
     }
 }
