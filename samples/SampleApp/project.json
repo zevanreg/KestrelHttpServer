@@ -12,7 +12,7 @@
         }
     },
     "commands": {
-        "run": "Kestrel",
+        "run": "SampleApp",
         "web": "Microsoft.AspNet.Hosting"
     }
 }
