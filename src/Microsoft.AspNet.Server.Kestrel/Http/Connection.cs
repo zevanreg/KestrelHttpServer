@@ -37,7 +37,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             KestrelTrace.Log.ConnectionStart(_connectionId);
 
             SocketInput = new SocketInput(Memory);
-            SocketOutput = new SocketOutput(Thread, _socket);
+            SocketOutput = new SocketOutput(this, _socket);
             _frame = new Frame(this);
             _socket.ReadStart(_allocCallback, _readCallback, this);
         }

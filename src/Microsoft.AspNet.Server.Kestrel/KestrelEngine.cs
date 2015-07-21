@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNet.Server.Kestrel.Http;
 using Microsoft.Framework.Runtime;
 using System.IO;
+using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel
 {
@@ -63,6 +64,7 @@ namespace Microsoft.AspNet.Server.Kestrel
 
         public Libuv Libuv { get; private set; }
         public IMemoryPool Memory { get; set; }
+        public UvWriteReqPool WritePool { get; set; }
         public IApplicationShutdown AppShutdown { get; private set; }
         public List<KestrelThread> Threads { get; private set; }
         public List<Listener> Listeners { get; private set; }
@@ -97,7 +99,8 @@ namespace Microsoft.AspNet.Server.Kestrel
             {
                 foreach (var thread in Threads)
                 {
-                    var listener = new Listener(Memory);
+                    var writePool = new UvWriteReqPool(thread.Loop);
+                    var listener = new Listener(Memory, writePool);
 
                     listeners.Add(listener);
                     listener.StartAsync(scheme, host, port, thread, application).Wait();

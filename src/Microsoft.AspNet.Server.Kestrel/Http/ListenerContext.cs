@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel.Http
 {
@@ -15,7 +16,10 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             Thread = context.Thread;
             Application = context.Application;
             Memory = context.Memory;
+            WritePool = context.WritePool;
         }
+
+        public UvWriteReqPool WritePool { get; set; }
 
         public KestrelThread Thread { get; set; }
 

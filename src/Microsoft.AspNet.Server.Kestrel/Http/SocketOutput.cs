@@ -5,7 +5,7 @@ using Microsoft.AspNet.Server.Kestrel.Networking;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading;
+using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel.Http
 {
@@ -28,10 +28,12 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private Exception _lastWriteError;
         private WriteContext _nextWriteContext;
         private readonly Queue<CallbackContext> _callbacksPending;
+        private readonly UvWriteReqPool _writePool;
 
-        public SocketOutput(KestrelThread thread, UvStreamHandle socket)
+        public SocketOutput(ListenerContext context, UvStreamHandle socket)
         {
-            _thread = thread;
+            _thread = context.Thread;
+            _writePool = context.WritePool;
             _socket = socket;
             _callbacksPending = new Queue<CallbackContext>();
         }
@@ -123,8 +125,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                     buffers[i++] = buffer;
                 }
 
-                var writeReq = new UvWriteReq();
-                writeReq.Init(_thread.Loop);
+                var writeReq = _writePool.Alloc();
 
                 writeReq.Write(_socket, new ArraySegment<ArraySegment<byte>>(buffers), (r, status, error, state) =>
                 {
@@ -174,7 +175,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 }
             }
 
-            req.Dispose();
+            _writePool.Free(req);
         }
 
         private void TriggerCallback(CallbackContext context)
