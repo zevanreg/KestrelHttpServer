@@ -5,10 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Http;
+using Microsoft.AspNet.Http.Features;
 using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -44,8 +46,22 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private bool _autoChunk;
         private Exception _applicationException;
 
-        public Frame(ConnectionContext context) : base(context)
+        private readonly IPEndPoint _localEndPoint;
+        private readonly IPEndPoint _remoteEndPoint;
+
+        public Frame(ConnectionContext context)
+            : this(context, remoteEndPoint: null, localEndPoint: null)
         {
+        }
+
+        public Frame(ConnectionContext context,
+                     IPEndPoint remoteEndPoint,
+                     IPEndPoint localEndPoint)
+            : base(context)
+        {
+            _remoteEndPoint = remoteEndPoint;
+            _localEndPoint = localEndPoint;
+
             FrameControl = this;
             Reset();
         }
@@ -99,6 +115,26 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             ResponseBody = null;
             DuplexStream = null;
 
+            var httpConnectionFeature = this as IHttpConnectionFeature;
+            if (httpConnectionFeature != null)
+            {
+                if (_remoteEndPoint != null)
+                {
+                    httpConnectionFeature.RemoteIpAddress = _remoteEndPoint.Address;
+                    httpConnectionFeature.RemotePort = _remoteEndPoint.Port;
+                }
+
+                if (_localEndPoint != null)
+                {
+                    httpConnectionFeature.LocalIpAddress = _localEndPoint.Address;
+                    httpConnectionFeature.LocalPort = _localEndPoint.Port;
+                }
+
+                if (_remoteEndPoint != null && _localEndPoint != null)
+                {
+                    httpConnectionFeature.IsLocal = _remoteEndPoint.Address.Equals(_localEndPoint.Address);
+                }
+            }
         }
 
         public void ResetResponseHeaders()
