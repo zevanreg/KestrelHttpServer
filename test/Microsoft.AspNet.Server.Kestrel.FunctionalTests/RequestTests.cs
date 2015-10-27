@@ -90,22 +90,23 @@ namespace Microsoft.AspNet.Server.Kestrel.FunctionalTests
                     { "server.urls", $"http://{registerAddress}:{port}" }
                 }).Build();
 
-            var builder = new WebHostBuilder(config).UseServer("Microsoft.AspNet.Server.Kestrel")
-                                                    .UseStartup(app =>
-                                                    {
-                                                        app.Run(async context =>
-                                                        {
-                                                            var connection = context.Connection;
-                                                            await context.Response.WriteAsync(JsonConvert.SerializeObject(new
-                                                            {
-                                                                RemoteIPAddress = connection.RemoteIpAddress?.ToString(),
-                                                                RemotePort = connection.RemotePort,
-                                                                LocalIPAddress = connection.LocalIpAddress?.ToString(),
-                                                                LocalPort = connection.LocalPort,
-                                                                IsLocal = connection.IsLocal
-                                                            }));
-                                                        });
-                                                    });
+            var builder = new WebHostBuilder(config)
+                .UseServer("Microsoft.AspNet.Server.Kestrel")
+                .UseStartup(app => 
+                {
+                    app.Run(async context =>
+                    {
+                        var connection = context.Connection;
+                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new
+                        {
+                            RemoteIPAddress = connection.RemoteIpAddress?.ToString(),
+                            RemotePort = connection.RemotePort,
+                            LocalIPAddress = connection.LocalIpAddress?.ToString(),
+                            LocalPort = connection.LocalPort,
+                            IsLocal = connection.IsLocal
+                        }));
+                    });
+                });
 
             using (var app = builder.Build().Start())
             using (var client = new HttpClient())
