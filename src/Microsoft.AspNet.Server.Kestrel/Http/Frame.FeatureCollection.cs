@@ -72,7 +72,6 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             MaybeExtra.Add(new KeyValuePair<Type, object>(key, value));
         }
 
-
         string IHttpRequestFeature.Protocol
         {
             get

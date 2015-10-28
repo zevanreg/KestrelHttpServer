@@ -212,10 +212,15 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
                         try
                         {
+                            Log.LogRequest(this);
+
                             await Application.Invoke(this).ConfigureAwait(false);
+
+                            Log.LogResponse(this);
                         }
                         catch (Exception ex)
                         {
+                            Log.FailProcessingRequest(this, ex);
                             ReportApplicationError(ex);
                         }
                         finally
