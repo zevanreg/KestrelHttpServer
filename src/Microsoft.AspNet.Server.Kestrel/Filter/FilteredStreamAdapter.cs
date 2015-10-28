@@ -14,12 +14,12 @@ namespace Microsoft.AspNet.Server.Kestrel.Filter
     {
         private readonly Stream _filteredStream;
         private readonly Stream _socketInputStream;
-        private readonly IKestrelTrace _log;
+        private readonly KestrelTrace _log;
 
         public FilteredStreamAdapter(
             Stream filteredStream,
             MemoryPool2 memory,
-            IKestrelTrace logger)
+            KestrelTrace logger)
         {
             SocketInput = new SocketInput(memory);
             SocketOutput = new StreamSocketOutput(filteredStream);

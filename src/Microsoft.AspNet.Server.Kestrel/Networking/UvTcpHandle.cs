@@ -4,13 +4,12 @@
 using System;
 using System.Net;
 using System.Runtime.InteropServices;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel.Networking
 {
     public class UvTcpHandle : UvStreamHandle
     {
-        public UvTcpHandle(IKestrelTrace logger) : base(logger)
+        public UvTcpHandle(KestrelTrace logger) : base(logger)
         {
         }
 

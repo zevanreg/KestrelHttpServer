@@ -4,7 +4,6 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.AspNet.Server.Kestrel;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 using Microsoft.AspNet.Server.Kestrel.Networking;
 using Xunit;
 
@@ -13,7 +12,7 @@ namespace Microsoft.AspNet.Server.KestrelTests
     public class MultipleLoopTests
     {
         private readonly Libuv _uv;
-        private readonly IKestrelTrace _logger;
+        private readonly KestrelTrace _logger;
         public MultipleLoopTests()
         {
             var engine = new KestrelEngine(new TestServiceContext());

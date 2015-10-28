@@ -2,14 +2,12 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Net;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel.Networking
 {
     public class UvPipeHandle : UvStreamHandle
     {
-        public UvPipeHandle(IKestrelTrace logger) : base(logger)
+        public UvPipeHandle(KestrelTrace logger) : base(logger)
         {
         }
 
@@ -17,7 +15,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
         {
             CreateMemory(
                 loop.Libuv,
-                loop.ThreadId, 
+                loop.ThreadId,
                 loop.Libuv.handle_size(Libuv.HandleType.NAMED_PIPE));
 
             _uv.pipe_init(loop, this, ipc);
@@ -26,7 +24,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
         public void Init(UvLoopHandle loop, Action<Action<IntPtr>, IntPtr> queueCloseHandle)
         {
             CreateHandle(
-                loop.Libuv, 
+                loop.Libuv,
                 loop.ThreadId,
                 loop.Libuv.handle_size(Libuv.HandleType.TCP), queueCloseHandle);
 

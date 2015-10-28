@@ -31,7 +31,7 @@ namespace Microsoft.AspNet.Server.Kestrel
         private object _workSync = new Object();
         private bool _stopImmediate = false;
         private ExceptionDispatchInfo _closeError;
-        private IKestrelTrace _log;
+        private KestrelTrace _log;
 
         public KestrelThread(KestrelEngine engine)
         {

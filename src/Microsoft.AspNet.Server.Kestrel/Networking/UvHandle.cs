@@ -3,7 +3,6 @@
 
 using System;
 using System.Threading;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel.Networking
 {
@@ -12,7 +11,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
         private static Libuv.uv_close_cb _destroyMemory = DestroyMemory;
         private Action<Action<IntPtr>, IntPtr> _queueCloseHandle;
 
-        protected UvHandle(IKestrelTrace logger) : base (logger)
+        protected UvHandle(KestrelTrace logger) : base(logger)
         {
         }
 

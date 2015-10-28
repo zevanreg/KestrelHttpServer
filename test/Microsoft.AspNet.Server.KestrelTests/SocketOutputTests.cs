@@ -118,7 +118,7 @@ namespace Microsoft.AspNet.Server.KestrelTests
 
         private class MockSocket : UvStreamHandle
         {
-            public MockSocket(int threadId, IKestrelTrace logger) : base(logger)
+            public MockSocket(int threadId, KestrelTrace logger) : base(logger)
             {
                 // Set the handle to something other than IntPtr.Zero
                 // so handle.Validate doesn't fail in Libuv.write

@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.InteropServices;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNet.Server.Kestrel.Networking
@@ -23,7 +22,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
         public object _readState;
         private GCHandle _readVitality;
 
-        protected UvStreamHandle(IKestrelTrace logger) : base(logger)
+        protected UvStreamHandle(KestrelTrace logger) : base(logger)
         {
         }
 

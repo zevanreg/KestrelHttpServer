@@ -19,7 +19,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private readonly KestrelThread _thread;
         private readonly UvStreamHandle _socket;
         private readonly long _connectionId;
-        private readonly IKestrelTrace _log;
+        private readonly KestrelTrace _log;
 
         // This locks access to to all of the below fields
         private readonly object _lockObj = new object();
@@ -33,7 +33,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private WriteContext _nextWriteContext;
         private readonly Queue<CallbackContext> _callbacksPending;
 
-        public SocketOutput(KestrelThread thread, UvStreamHandle socket, long connectionId, IKestrelTrace log)
+        public SocketOutput(KestrelThread thread, UvStreamHandle socket, long connectionId, KestrelTrace log)
         {
             _thread = thread;
             _socket = socket;

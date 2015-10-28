@@ -49,7 +49,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private readonly IPEndPoint _localEndPoint;
         private readonly IPEndPoint _remoteEndPoint;
 
-        public Frame(ConnectionContext context)
+        internal Frame(ConnectionContext context)
             : this(context, remoteEndPoint: null, localEndPoint: null)
         {
         }

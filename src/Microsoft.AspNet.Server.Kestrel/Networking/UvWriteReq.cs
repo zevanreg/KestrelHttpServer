@@ -24,7 +24,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
 
         private List<GCHandle> _pins = new List<GCHandle>();
 
-        public UvWriteReq(IKestrelTrace logger) : base(logger)
+        public UvWriteReq(KestrelTrace logger) : base(logger)
         {
         }
 

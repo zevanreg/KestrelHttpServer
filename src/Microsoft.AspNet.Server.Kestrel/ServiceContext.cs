@@ -4,7 +4,6 @@
 using Microsoft.AspNet.Hosting;
 using Microsoft.AspNet.Server.Kestrel.Filter;
 using Microsoft.AspNet.Server.Kestrel.Http;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel
 {
@@ -29,7 +28,7 @@ namespace Microsoft.AspNet.Server.Kestrel
 
         public IMemoryPool Memory { get; set; }
 
-        public IKestrelTrace Log { get; set; }
+        public KestrelTrace Log { get; set; }
 
         public DateHeaderValueManager DateHeaderValueManager { get; set; }
 

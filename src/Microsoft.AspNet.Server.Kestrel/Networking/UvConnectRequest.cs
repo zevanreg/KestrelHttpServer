@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNet.Server.Kestrel.Networking
@@ -17,7 +16,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
         private Action<UvConnectRequest, int, Exception, object> _callback;
         private object _state;
 
-        public UvConnectRequest(IKestrelTrace logger) : base (logger)
+        public UvConnectRequest(KestrelTrace logger) : base (logger)
         {
         }
 

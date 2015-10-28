@@ -1,11 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 #define TRACE
+
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel.Networking
 {
@@ -16,9 +17,9 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
     {
         protected Libuv _uv;
         protected int _threadId;
-        protected IKestrelTrace _log;
+        protected KestrelTrace _log;
 
-        protected UvMemory(IKestrelTrace logger) : base(IntPtr.Zero, true)
+        protected UvMemory(KestrelTrace logger) : base(IntPtr.Zero, true)
         {
             _log = logger;
         }
@@ -87,6 +88,5 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
             GCHandle gcHandle = GCHandle.FromIntPtr(*(IntPtr*)handle);
             return (THandle)gcHandle.Target;
         }
-
     }
 }

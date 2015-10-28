@@ -1,6 +1,8 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Runtime.InteropServices;
-using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNet.Server.Kestrel.Networking
 {
@@ -8,7 +10,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
     {
         private GCHandle _pin;
 
-        protected UvRequest(IKestrelTrace logger) : base (logger)
+        protected UvRequest(KestrelTrace logger) : base (logger)
         {
         }
 
