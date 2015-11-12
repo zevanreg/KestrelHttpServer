@@ -31,7 +31,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private readonly object _onStartingSync = new Object();
         private readonly object _onCompletedSync = new Object();
         private readonly FrameRequestHeaders _requestHeaders = new FrameRequestHeaders();
-        private readonly byte[] _nullBuffer = new byte[4096];
+        private static readonly byte[] _nullBuffer = new byte[4096];
         private readonly FrameResponseHeaders _responseHeaders = new FrameResponseHeaders();
 
         private List<KeyValuePair<Func<object, Task>, object>> _onStarting;

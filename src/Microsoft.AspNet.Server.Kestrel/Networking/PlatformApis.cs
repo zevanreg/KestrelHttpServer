@@ -8,21 +8,34 @@ namespace Microsoft.AspNet.Server.Kestrel.Networking
 {
     public static class PlatformApis
     {
+        private static bool? _isWindows;
+        private static bool? _isDarwin;
+
         public static bool IsWindows()
         {
+            if (!_isWindows.HasValue)
+            {
 #if DOTNET5_4 || DNXCORE50
-            // Until Environment.OSVersion.Platform is exposed on .NET Core, we
-            // try to call uname and if that fails we assume we are on Windows.
-            return GetUname() == string.Empty;
+                // Until Environment.OSVersion.Platform is exposed on .NET Core, we
+                // try to call uname and if that fails we assume we are on Windows.
+                _isWindows = GetUname() == string.Empty;
 #else
-            var p = (int)Environment.OSVersion.Platform;
-            return (p != 4) && (p != 6) && (p != 128);
+                var p = (int)Environment.OSVersion.Platform;
+                _isWindows = (p != 4) && (p != 6) && (p != 128);
 #endif
+            }
+
+            return _isWindows.Value;
         }
 
         public static bool IsDarwin()
         {
-            return string.Equals(GetUname(), "Darwin", StringComparison.Ordinal);
+            if (!_isDarwin.HasValue)
+            {
+                _isDarwin = string.Equals(GetUname(), "Darwin", StringComparison.Ordinal);
+            }
+
+            return _isDarwin.Value;
         }
 
         [DllImport("libc")]
