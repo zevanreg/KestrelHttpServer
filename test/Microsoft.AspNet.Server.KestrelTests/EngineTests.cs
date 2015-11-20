@@ -1061,6 +1061,39 @@ namespace Microsoft.AspNet.Server.KestrelTests
             }
         }
 
+        [ConditionalTheory(Skip = "High-order characters in headers currently being '(char)byte' typecast")]
+        [MemberData(nameof(ConnectionFilterData))]
+        [FrameworkSkipCondition(RuntimeFrameworks.Mono, SkipReason = "Test hangs after execution on Mono.")]
+        public async Task NonASCIIHeadersValuesComeThrough(ServiceContext testContext)
+        {
+            using (var server = new TestServer(async httpContext =>
+            {
+                var host = httpContext.Request.Host.Value;
+
+                var response = httpContext.Response;
+                response.Headers.Clear();
+                response.Headers["Content-Length"] = "6";
+                await response.WriteAsync(host);
+            }, testContext))
+            {
+                using (var connection = new TestConnection())
+                {
+                    await connection.SendEnd(
+                        "GET / HTTP/1.1",
+                        "Host: LaNiña",
+                        "Connection: close",
+                        "",
+                        "");
+                    await connection.ReceiveEnd(
+                        "HTTP/1.1 200 OK",
+                        "Content-Length: 15",
+                        "Connection: close",
+                        "",
+                        "LaNiña");
+                }
+            }
+        }
+
         private class TestApplicationErrorLogger : ILogger
         {
             public int ApplicationErrorsLogged { get; set; }

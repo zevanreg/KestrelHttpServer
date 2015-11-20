@@ -32,7 +32,7 @@ namespace Microsoft.AspNet.Server.KestrelTests
             _socket.Connect(new IPEndPoint(IPAddress.Loopback, 54321));
 
             _stream = new NetworkStream(_socket, false);
-            _reader = new StreamReader(_stream, Encoding.ASCII);
+            _reader = new StreamReader(_stream, Encoding.UTF8);
         }
         public void Dispose()
         {
@@ -43,7 +43,7 @@ namespace Microsoft.AspNet.Server.KestrelTests
         public async Task Send(params string[] lines)
         {
             var text = String.Join("\r\n", lines);
-            var writer = new StreamWriter(_stream, Encoding.ASCII);
+            var writer = new StreamWriter(_stream, Encoding.UTF8);
             for (var index = 0; index < text.Length; index++)
             {
                 var ch = text[index];
