@@ -239,14 +239,14 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Networking
             const int WSAEOPNOTSUPP = 10000 + 45; // (WSABASEERR+45)
             const int SOCKET_ERROR = -1;
 
-            IntPtr socket = IntPtr.Zero;
+            var socket = IntPtr.Zero;
             Check(_uv_fileno(handle, ref socket));
 
             // Enable loopback fast-path for lower latency for localhost comms, like HttpPlatformHandler fronting
             // http://blogs.technet.com/b/wincat/archive/2012/12/05/fast-tcp-loopback-performance-and-low-latency-with-windows-server-2012-tcp-loopback-fast-path.aspx
             // https://github.com/libuv/libuv/issues/489
-            int optionValue = 1;
-            uint dwBytes = 0;
+            var optionValue = 1;
+            uint dwBytes = 0u;
 
             var result = NativeMethods.WSAIoctl(socket, SIO_LOOPBACK_FAST_PATH, &optionValue, sizeof(int), null, 0, out dwBytes, IntPtr.Zero, IntPtr.Zero);
             if (result == SOCKET_ERROR)

@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.Server.KestrelTests
                 if (PlatformApis.IsWindows)
                 {
                     const int SIO_LOOPBACK_FAST_PATH = (-1744830448);
-                    byte[] optionInValue = BitConverter.GetBytes(1);
+                    var optionInValue = BitConverter.GetBytes(1);
                     try
                     {
                         socket.IOControl(SIO_LOOPBACK_FAST_PATH, optionInValue, null);
@@ -166,7 +166,7 @@ namespace Microsoft.AspNetCore.Server.KestrelTests
                 if (PlatformApis.IsWindows)
                 {
                     const int SIO_LOOPBACK_FAST_PATH = (-1744830448);
-                    byte[] optionInValue = BitConverter.GetBytes(1);
+                    var optionInValue = BitConverter.GetBytes(1);
                     try
                     {
                         socket.IOControl(SIO_LOOPBACK_FAST_PATH, optionInValue, null);
@@ -269,7 +269,7 @@ namespace Microsoft.AspNetCore.Server.KestrelTests
                 if (PlatformApis.IsWindows)
                 {
                     const int SIO_LOOPBACK_FAST_PATH = (-1744830448);
-                    byte[] optionInValue = BitConverter.GetBytes(1);
+                    var optionInValue = BitConverter.GetBytes(1);
                     try
                     {
                         socket.IOControl(SIO_LOOPBACK_FAST_PATH, optionInValue, null);
