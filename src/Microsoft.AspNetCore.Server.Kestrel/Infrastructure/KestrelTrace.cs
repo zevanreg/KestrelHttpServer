@@ -15,6 +15,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel
     {
         private static readonly Action<ILogger, string, Exception> _connectionStart;
         private static readonly Action<ILogger, string, Exception> _connectionStop;
+        private static readonly Action<ILogger, string, int, Exception> _connectionRead;
         private static readonly Action<ILogger, string, Exception> _connectionPause;
         private static readonly Action<ILogger, string, Exception> _connectionResume;
         private static readonly Action<ILogger, string, Exception> _connectionReadFin;
@@ -33,6 +34,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel
         {
             _connectionStart = LoggerMessage.Define<string>(LogLevel.Debug, 1, @"Connection id ""{ConnectionId}"" started.");
             _connectionStop = LoggerMessage.Define<string>(LogLevel.Debug, 2, @"Connection id ""{ConnectionId}"" stopped.");
+            _connectionRead = LoggerMessage.Define<string, int>(LogLevel.Debug, 2, @"Connection id ""{ConnectionId}"" read callback called with status ""{Status}"".");
             // ConnectionRead: Reserved: 3
             _connectionPause = LoggerMessage.Define<string>(LogLevel.Debug, 4, @"Connection id ""{ConnectionId}"" paused.");
             _connectionResume = LoggerMessage.Define<string>(LogLevel.Debug, 5, @"Connection id ""{ConnectionId}"" resumed.");
@@ -65,8 +67,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel
             _connectionStop(_logger, connectionId, null);
         }
 
-        public virtual void ConnectionRead(string connectionId, int count)
+        public virtual void ConnectionRead(string connectionId, int status)
         {
+            _connectionRead(_logger, connectionId, status, null);
             // Don't log for now since this could be *too* verbose.
             // Reserved: Event ID 3
         }

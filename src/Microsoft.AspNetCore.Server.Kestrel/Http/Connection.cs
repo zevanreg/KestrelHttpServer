@@ -252,6 +252,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Http
 
         private void OnRead(UvStreamHandle handle, int status)
         {
+            Log.ConnectionRead(ConnectionId, status);
             if (status == 0)
             {
                 // A zero status does not indicate an error or connection end. It indicates
@@ -269,7 +270,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Http
 
             if (normalRead)
             {
-                Log.ConnectionRead(ConnectionId, readCount);
+                //Log.ConnectionRead(ConnectionId, readCount);
             }
             else
             {
