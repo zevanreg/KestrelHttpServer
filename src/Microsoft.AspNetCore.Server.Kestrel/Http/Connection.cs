@@ -38,13 +38,12 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Http
         private ConnectionState _connectionState;
         private TaskCompletionSource<object> _socketClosedTcs;
 
-        public Connection(ListenerContext context, UvStreamHandle socket) : base(context)
+        public Connection(ListenerContext context, UvStreamHandle socket)
+            : base(context, GenerateConnectionId(Interlocked.Increment(ref _lastConnectionId)))
         {
             _socket = socket;
             socket.Connection = this;
             ConnectionControl = this;
-
-            ConnectionId = GenerateConnectionId(Interlocked.Increment(ref _lastConnectionId));
 
             _rawSocketInput = new SocketInput(Memory, ThreadPool);
             _rawSocketOutput = new SocketOutput(Thread, _socket, Memory, this, ConnectionId, Log, ThreadPool, WriteReqPool);

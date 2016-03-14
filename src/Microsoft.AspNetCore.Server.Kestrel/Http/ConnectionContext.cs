@@ -4,6 +4,7 @@
 using System;
 using System.Net;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Infrastructure;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Http
 {
@@ -13,8 +14,10 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Http
         {
         }
 
-        public ConnectionContext(ListenerContext context) : base(context)
+        public ConnectionContext(ListenerContext context, string connectionId) : base(context)
         {
+            ConnectionId = connectionId;
+            ThreadPool = new ConnectionLoggingThreadPool(Log, connectionId);
         }
 
         public ConnectionContext(ConnectionContext context) : base(context)

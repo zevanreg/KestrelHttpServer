@@ -1,24 +1,25 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Infrastructure
 {
-    public class LoggingThreadPool : IThreadPool
+    public class ConnectionLoggingThreadPool : IThreadPool
     {
         private readonly IKestrelTrace _log;
+        private readonly string _connectionId;
 
         private readonly WaitCallback _runAction;
         private readonly WaitCallback _cancelTcs;
         private readonly WaitCallback _completeTcs;
 
-        public LoggingThreadPool(IKestrelTrace log)
+        public ConnectionLoggingThreadPool(IKestrelTrace log, string connectionId)
         {
             _log = log;
+            _connectionId = connectionId;
 
             // Curry and capture log in closures once
             _runAction = (o) =>
@@ -29,7 +30,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Infrastructure
                 }
                 catch (Exception e)
                 {
-                    _log.LogError(0, e, "LoggingThreadPool.Run");
+                    _log.ApplicationError(_connectionId, e);
                 }
             };
 
@@ -41,7 +42,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Infrastructure
                 }
                 catch (Exception e)
                 {
-                    _log.LogError(0, e, "LoggingThreadPool.Complete");
+                    _log.ApplicationError(_connectionId, e);
                 }
             };
 
@@ -53,7 +54,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Infrastructure
                 }
                 catch (Exception e)
                 {
-                    _log.LogError(0, e, "LoggingThreadPool.Cancel");
+                    _log.ApplicationError(_connectionId, e);
                 }
             };
         }
@@ -75,7 +76,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Infrastructure
 
         public void Error(TaskCompletionSource<object> tcs, Exception ex)
         {
-            // ex and _log are closure captured 
+            // ex, _log and _connectionId are closure captured 
             ThreadPool.QueueUserWorkItem((o) =>
             {
                 try
@@ -84,7 +85,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Infrastructure
                 }
                 catch (Exception e)
                 {
-                    _log.LogError(0, e, "LoggingThreadPool.Error");
+                    _log.ApplicationError(_connectionId, e);
                 }
             }, tcs);
         }
